@@ -1,0 +1,101 @@
+#! /usr/bin/env python
+
+'''
+Make PDF from Markdown with wkhtmltopdf
+'''
+
+import sys
+import os
+import argparse
+import subprocess
+
+import shellescape
+
+
+def run(filename, pdf, csspath, dryrun, verbose):
+    '''
+    Run wkhtmltopdf
+    '''
+
+    cssarg = ['-c%s' % csspath] if csspath else []
+    args = ['pandoc', '-thtml5', '-o%s' % pdf] + cssarg + [filename]
+
+    if verbose:
+        print ' '.join([shellescape.quote(arg) for arg in args])
+
+    print "Making %s" % pdf
+    if not dryrun:
+        subprocess.call(args)
+
+
+def remove(pdf, dryrun):
+    '''
+    Remove PDF file
+    '''
+
+    if os.path.exists(pdf):
+        print "Removing %s" % pdf
+        if not dryrun:
+            try:
+                os.remove(pdf)
+            except OSError, exc:
+                print exc
+
+
+def walk(csspath, cssmtime, clean, dryrun, verbose):
+    '''
+    Walk Markdown files
+    '''
+    for filename in os.listdir('.'):
+        if filename.lower().endswith('.md'):
+            pdf = "%s.pdf" % filename[:-3]
+            if clean:
+                remove(pdf, dryrun)
+            else:
+                if os.path.exists(pdf):
+                    try:
+                        pdfmtime = os.stat(pdf).st_mtime
+                    except OSError, exc:
+                        print exc
+                else:
+                    pdfmtime = 0
+
+                mtime = os.stat(filename).st_mtime
+                if mtime > pdfmtime or cssmtime > pdfmtime:
+                    run(filename, pdf, csspath, dryrun, verbose)
+
+
+def getcss(csspath):
+    '''
+    Walk up to find CSS
+    '''
+    while True:
+        for filename in os.listdir(csspath):
+            if filename.lower().endswith('.css'):
+                path = '%s/%s' % (csspath, filename)
+                return path, os.stat(path).st_mtime
+
+        csspath = '%s/..' % csspath
+        if os.path.abspath(csspath) == '/':
+            return None, None
+
+
+def main():
+    '''
+    Parse arguments
+    '''
+
+    # Parse arguments
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('-n', '--dryrun', action='store_true')
+    parser.add_argument('-v', '--verbose', action='store_true')
+    parser.add_argument('-c', '--clean', action='store_true')
+    args = parser.parse_args()
+
+    # Find styles
+    csspath, mtime = getcss('.')
+    walk(csspath, mtime, args.clean, args.dryrun, args.verbose)
+
+
+if __name__ == '__main__':
+    sys.exit(main())
