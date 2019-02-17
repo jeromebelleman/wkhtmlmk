@@ -46,6 +46,7 @@ def walk(csspath, cssmtime, clean, dryrun, verbose):
     '''
     Walk Markdown files
     '''
+
     for filename in os.listdir('.'):
         if filename.lower().endswith('.md'):
             pdf = "%s.pdf" % filename[:-3]
@@ -69,6 +70,7 @@ def getcss(csspath):
     '''
     Walk up to find CSS
     '''
+
     while True:
         for filename in os.listdir(csspath):
             if filename.lower().endswith('.css'):
@@ -87,9 +89,9 @@ def main():
 
     # Parse arguments
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('-c', '--clean', action='store_true')
     parser.add_argument('-n', '--dryrun', action='store_true')
     parser.add_argument('-v', '--verbose', action='store_true')
-    parser.add_argument('-c', '--clean', action='store_true')
     args = parser.parse_args()
 
     # Find styles
